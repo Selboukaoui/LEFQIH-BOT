@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>Final Recitation Report</title>
+</head>
+<body>
+    <h1>📊 FINAL RECITATION REPORT</h1>
+    <p>Verses attempted: {{ verses_attempted }}</p>
+    <p>Total errors: {{ total_errors }}</p>
+    <p>Average similarity: {{ avg_similarity }}%</p>
+    <p>Error rate: {{ error_rate }}%</p>
+    
+    <h2>Detailed Error Report:</h2>
+    {% if errors %}
+        <ul>
+        {% for error in errors %}
+            <li>
+                <strong>Verse {{ error.verse_number }} ({{ error.timestamp }}):</strong><br>
+                Correct: {{ error.verse_text }}<br>
+                You typed: {{ error.user_input }}<br>
+                {% if error.error.type == 'incorrect' %}
+                    ❌ "{{ error.error.spoken }}" should be "{{ error.error.correct }}"
+                {% elif error.error.type == 'missing' %}
+                    ⚠️ Missing: "{{ error.error.missing }}"
+                {% elif error.error.type == 'extra' %}
+                    ➕ Extra: "{{ error.error.extra }}"
+                {% endif %}
+                <br>
+                Similarity: {{ (error.similarity * 100) | round(1) }}%
+            </li>
+            <hr>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>🎉 Excellent! No errors detected!</p>
+    {% endif %}
+    
+    <p><a href="{{ url_for('index') }}">Restart</a></p>
+</body>
+</html>

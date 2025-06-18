@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>Reciting Surah {{ surah.name }}</title>
+</head>
+<body>
+    <h1>{{ surah.name }} ({{ surah.englishName }})</h1>
+    <h2>Recite the Full Surah</h2>
+    
+    <!-- Display the full surah text in one block -->
+    <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 20px;">
+        <pre style="direction: rtl; font-size: 1.2em;">{{ full_text }}</pre>
+    </div>
+    
+    {% if error_message %}
+        <p style="color: red;">{{ error_message }}</p>
+    {% endif %}
+    
+    <form action="{{ url_for('recite') }}" method="post">
+        <label for="user_input">Enter your recitation for the whole surah:</label><br>
+        <textarea name="user_input" id="user_input" rows="10" cols="80"></textarea><br>
+        <button type="submit">Submit Recitation</button>
+    </form>
+</body>
+</html>

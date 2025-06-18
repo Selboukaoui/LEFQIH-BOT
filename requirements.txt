@@ -1,0 +1,4 @@
+pip install speechrecognition pyaudio pyttsx3 arabic-reshaper python-bidi
+pip install requests  # For Quran API
+pip install flask requests
+pip install flask

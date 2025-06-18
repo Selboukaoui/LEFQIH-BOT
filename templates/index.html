@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>Quran Recitation Checker – Surah Selection</title>
+</head>
+<body>
+    <h1>🕌 Quran Recitation Checker</h1>
+    <h2>Choose a Surah</h2>
+    <form action="{{ url_for('start') }}" method="post">
+        <label for="surah_number">Enter Surah Number (1-114):</label>
+        <input type="number" id="surah_number" name="surah_number" required min="1" max="114">
+        <button type="submit">Start Recitation</button>
+    </form>
+    <h3>Available Surahs:</h3>
+    <ul>
+        {% for surah in surahs %}
+            <li>
+                {{ surah.number }}. {{ surah.name }} ({{ surah.englishName }}) – {{ surah.numberOfAyahs }} verses
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
