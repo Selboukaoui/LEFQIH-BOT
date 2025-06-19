@@ -2,25 +2,746 @@
 <html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <title>Reciting Surah {{ surah.name }}</title>
+    <title>Real-Time Quran Recitation Checker</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #2c3e50, #34495e);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .arabic-text { 
+            direction: rtl; 
+            unicode-bidi: embed; 
+            font-size: 1.2em; 
+            font-family: 'Arial Unicode MS', 'Tahoma', sans-serif;
+        }
+        
+        .real-time-feedback {
+            position: fixed; 
+            top: 20px; 
+            right: 20px;
+            background: rgba(255, 255, 255, 0.98);
+            border: 2px solid #3498db; 
+            border-radius: 12px;
+            padding: 20px; 
+            max-width: 350px; 
+            z-index: 1000;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            backdrop-filter: blur(10px);
+        }
+        
+        .real-time-error {
+            background: linear-gradient(135deg, #ffebee, #ffcdd2); 
+            border-left: 4px solid #e74c3c;
+            padding: 12px; 
+            margin: 8px 0; 
+            border-radius: 6px;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .real-time-success {
+            background: linear-gradient(135deg, #e8f5e8, #c8e6c9); 
+            border-left: 4px solid #27ae60;
+            padding: 12px; 
+            margin: 8px 0; 
+            border-radius: 6px;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .error-word { 
+            background: #ff5252; 
+            color: white;
+            padding: 3px 6px; 
+            border-radius: 4px; 
+            font-weight: bold;
+        }
+        
+        .correct-word { 
+            background: #4caf50; 
+            color: white;
+            padding: 3px 6px; 
+            border-radius: 4px; 
+            font-weight: bold;
+        }
+        
+        .progress-container {
+            margin: 15px 0;
+        }
+        
+        .progress-bar {
+            width: 100%; 
+            height: 25px; 
+            background: #ecf0f1;
+            border-radius: 15px; 
+            overflow: hidden; 
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%; 
+            background: linear-gradient(90deg, #27ae60, #2ecc71, #58d68d);
+            transition: width 0.5s ease;
+            border-radius: 15px;
+            position: relative;
+        }
+        
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .control-buttons {
+            text-align: center;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        
+        .control-buttons button {
+            margin: 10px; 
+            padding: 15px 25px; 
+            font-size: 16px;
+            border: none; 
+            border-radius: 50px; 
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            min-width: 150px;
+        }
+        
+        .start-btn { 
+            background: linear-gradient(45deg, #27ae60, #2ecc71); 
+            color: white; 
+        }
+        .start-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4); }
+        
+        .stop-btn { 
+            background: linear-gradient(45deg, #e74c3c, #c0392b); 
+            color: white; 
+        }
+        .stop-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4); }
+        
+        .pause-btn { 
+            background: linear-gradient(45deg, #f39c12, #e67e22); 
+            color: white; 
+        }
+        .pause-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4); }
+        
+        .reset-btn { 
+            background: linear-gradient(45deg, #95a5a6, #7f8c8d); 
+            color: white; 
+        }
+        .reset-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(149, 165, 166, 0.4); }
+        
+        .surah-display {
+            margin: 30px;
+            border: 2px solid #bdc3c7;
+            border-radius: 10px;
+            background: #fafafa;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .surah-header {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .surah-text {
+            padding: 25px;
+            font-size: 1.4em;
+            line-height: 2.2;
+            direction: rtl;
+            font-family: 'Arial Unicode MS', 'Tahoma', sans-serif;
+        }
+        
+        .transcript-section {
+            margin: 30px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .transcript-header {
+            background: #34495e;
+            color: white;
+            padding: 15px;
+            font-weight: bold;
+        }
+        
+        .transcript-display {
+            padding: 20px;
+            min-height: 120px;
+            font-size: 1.2em;
+            line-height: 1.8;
+            border: none;
+            background: white;
+            direction: rtl;
+        }
+        
+        .final-analysis {
+            margin: 30px;
+            padding: 25px;
+            border: 3px solid #27ae60;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #d5f4e6, #fafffe);
+        }
+        
+        .analysis-header {
+            text-align: center;
+            color: #27ae60;
+            margin-bottom: 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        
+        .suggestions {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .button-primary {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .button-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        
+        .status-recording {
+            background: #e74c3c;
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .status-paused {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .status-ready {
+            background: #27ae60;
+            color: white;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        .error-alert {
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            color: #c53030;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .real-time-feedback {
+                position: fixed;
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                max-width: none;
+            }
+            
+            .control-buttons button {
+                min-width: 120px;
+                margin: 5px;
+                padding: 12px 20px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h1>{{ surah.name }} ({{ surah.englishName }})</h1>
-    <h2>Recite the Full Surah</h2>
-    
-    <!-- Display the full surah text in one block -->
-    <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 20px;">
-        <pre style="direction: rtl; font-size: 1.2em;">{{ full_text }}</pre>
+    <div class="container">
+        <div class="header">
+            <h1 class="arabic-text">{{ surah.name }} ({{ surah.englishName }})</h1>
+            <p>Real-Time Quran Recitation Checker with AI Feedback</p>
+            <div id="status-indicator" class="status-indicator status-ready">Ready to Start</div>
+        </div>
+        
+        <!-- Real-time feedback area -->
+        <div id="real-time-feedback" class="real-time-feedback" style="display: none;">
+            <h4>🎯 Real-Time Feedback</h4>
+            <div id="real-time-errors"></div>
+            
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill" style="width: 0%;"></div>
+                    <div id="progress-text" class="progress-text">0%</div>
+                </div>
+            </div>
+            
+            <div id="current-suggestion" style="font-size: 0.9em; color: #666; margin-top: 10px; direction: rtl;"></div>
+        </div>
+        
+        <!-- Surah text display -->
+        <div class="surah-display">
+            <div class="surah-header">
+                📖 Surah Text - Follow Along
+            </div>
+            <div class="surah-text">{{ full_text }}</div>
+        </div>
+        
+        <!-- Control buttons -->
+        <div class="control-buttons">
+            <button id="startRec" class="start-btn">🎤 Start Recitation</button>
+            <button id="stopRec" class="stop-btn" disabled>⏹️ Stop & Analyze</button>
+            <button id="pauseRec" class="pause-btn" disabled>⏸️ Pause</button>
+            <button id="resetRec" class="reset-btn">🔄 Reset</button>
+        </div>
+        
+        <!-- Current transcript -->
+        <div class="transcript-section">
+            <div class="transcript-header">
+                📝 Your Live Recitation
+            </div>
+            <div id="transcript-display" class="transcript-display"></div>
+        </div>
+        
+        <!-- Final analysis -->
+        <div id="final-analysis" class="final-analysis" style="display: none;">
+            <div class="analysis-header">
+                <h2>📊 Recitation Analysis Complete</h2>
+            </div>
+            <div id="analysis-results"></div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button onclick="startNewRecitation()" class="button-primary">🔄 Start New Recitation</button>
+                <button onclick="goToReport()" class="button-primary">📋 View Detailed Report</button>
+            </div>
+        </div>
+        
+        {% if error_message %}
+            <div class="error-alert">
+                ⚠️ {{ error_message }}
+            </div>
+        {% endif %}
     </div>
     
-    {% if error_message %}
-        <p style="color: red;">{{ error_message }}</p>
-    {% endif %}
-    
-    <form action="{{ url_for('recite') }}" method="post">
-        <label for="user_input">Enter your recitation for the whole surah:</label><br>
-        <textarea name="user_input" id="user_input" rows="10" cols="80"></textarea><br>
-        <button type="submit">Submit Recitation</button>
-    </form>
+    <script>
+        // Speech Recognition Setup
+        window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (!window.SpeechRecognition) {
+            alert("❌ Your browser doesn't support Speech Recognition. Please use Chrome, Edge, or Safari.");
+        } else {
+            const recognition = new window.SpeechRecognition();
+            recognition.lang = 'ar-SA';
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.maxAlternatives = 1;
+            
+            let finalTranscript = "";
+            let isRecording = false;
+            let totalWords = 0;
+            
+            // Elements
+            const startBtn = document.getElementById('startRec');
+            const stopBtn = document.getElementById('stopRec');
+            const pauseBtn = document.getElementById('pauseRec');
+            const resetBtn = document.getElementById('resetRec');
+            const feedbackDiv = document.getElementById('real-time-feedback');
+            const transcriptDiv = document.getElementById('transcript-display');
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            const statusIndicator = document.getElementById('status-indicator');
+            
+            // Speech Recognition Events
+            recognition.onstart = function() {
+                console.log('Speech recognition started');
+                updateStatus('recording', 'Recording...');
+            };
+            
+            recognition.onresult = function(event) {
+                let interimTranscript = "";
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + " ";
+                        checkWordInRealTime(transcript);
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                // Update display
+                transcriptDiv.innerHTML = 
+                    '<span style="color: #2c3e50;">' + finalTranscript + '</span>' +
+                    '<span style="color: #95a5a6; font-style: italic;">' + interimTranscript + '</span>';
+            };
+            
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error:', event.error);
+                showError('Recognition error: ' + event.error);
+                updateStatus('ready', 'Error - Ready');
+            };
+            
+            recognition.onend = function() {
+                console.log('Speech recognition ended');
+                if (isRecording) {
+                    // Restart if still supposed to be recording
+                    setTimeout(() => {
+                        if (isRecording) recognition.start();
+                    }, 100);
+                } else {
+                    updateStatus('ready', 'Ready');
+                }
+            };
+            
+            // Button Events
+            startBtn.addEventListener('click', startRecording);
+            stopBtn.addEventListener('click', stopRecording);
+            pauseBtn.addEventListener('click', pauseRecording);
+            resetBtn.addEventListener('click', resetRecitation);
+            
+            // Functions
+            function startRecording() {
+                isRecording = true;
+                if (finalTranscript === "") {
+                    // Initialize session only on first start
+                    initializeSession();
+                }
+                
+                try {
+                    recognition.start();
+                } catch (e) {
+                    console.log('Recognition already started');
+                }
+                
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                pauseBtn.disabled = false;
+                feedbackDiv.style.display = 'block';
+                updateStatus('recording', 'Recording...');
+            }
+            
+            function stopRecording() {
+                isRecording = false;
+                recognition.stop();
+                
+                // Get final analysis
+                fetch('/final_analysis', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ transcript: finalTranscript.trim() })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showError(data.error);
+                    } else {
+                        showFinalAnalysis(data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError('Failed to get analysis');
+                });
+                
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                pauseBtn.disabled = true;
+                updateStatus('ready', 'Analysis Complete');
+            }
+            
+            function pauseRecording() {
+                isRecording = false;
+                recognition.stop();
+                startBtn.disabled = false;
+                stopBtn.disabled = false;
+                pauseBtn.disabled = true;
+                updateStatus('paused', 'Paused');
+            }
+            
+            function resetRecitation() {
+                isRecording = false;
+                recognition.stop();
+                finalTranscript = "";
+                transcriptDiv.innerHTML = "";
+                feedbackDiv.style.display = 'none';
+                document.getElementById('final-analysis').style.display = 'none';
+                document.getElementById('real-time-errors').innerHTML = '';
+                progressFill.style.width = '0%';
+                progressText.textContent = '0%';
+                
+                // Reset session on server
+                fetch('/reset_session', { method: 'POST' });
+                
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                pauseBtn.disabled = true;
+                updateStatus('ready', 'Ready to Start');
+            }
+            
+            function initializeSession() {
+                fetch('/start_realtime_session', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    totalWords = data.total_words;
+                    console.log('Session initialized, total words:', totalWords);
+                })
+                .catch(error => console.error('Session init error:', error));
+            }
+            
+            function checkWordInRealTime(transcript) {
+                if (!transcript.trim()) return;
+                
+                fetch('/check_realtime', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: transcript })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.errors && data.errors.length > 0) {
+                        showRealTimeError(data.errors);
+                        playErrorSound();
+                    } else {
+                        showCorrectFeedback();
+                        playSuccessSound();
+                    }
+                    updateProgress(data.progress_percentage || 0);
+                    updateSuggestion(data.suggestion || '');
+                })
+                .catch(error => console.error('Real-time check error:', error));
+            }
+            
+            function showRealTimeError(errors) {
+                const errorDiv = document.getElementById('real-time-errors');
+                errorDiv.innerHTML = '';
+                
+                errors.forEach(error => {
+                    const errorElement = document.createElement('div');
+                    errorElement.className = 'real-time-error';
+                    errorElement.innerHTML = `
+                        ❌ <span class="error-word">${error.spoken}</span> 
+                        should be 
+                        <span class="correct-word">${error.expected}</span>
+                    `;
+                    errorDiv.appendChild(errorElement);
+                });
+                
+                setTimeout(() => {
+                    if (errorDiv.children.length > 3) {
+                        errorDiv.removeChild(errorDiv.firstChild);
+                    }
+                }, 4000);
+            }
+            
+            function showCorrectFeedback() {
+                const errorDiv = document.getElementById('real-time-errors');
+                const successElement = document.createElement('div');
+                successElement.className = 'real-time-success';
+                successElement.innerHTML = '✅ Correct!';
+                errorDiv.appendChild(successElement);
+                
+                setTimeout(() => {
+                    if (successElement.parentNode) {
+                        successElement.parentNode.removeChild(successElement);
+                    }
+                }, 1500);
+            }
+            
+            function updateProgress(percentage) {
+                progressFill.style.width = percentage + '%';
+                progressText.textContent = Math.round(percentage) + '%';
+            }
+            
+            function updateSuggestion(suggestion) {
+                const suggestionDiv = document.getElementById('current-suggestion');
+                suggestionDiv.innerHTML = suggestion ? `📖 Next: ${suggestion}` : '';
+            }
+            
+            function updateStatus(type, text) {
+                statusIndicator.className = `status-indicator status-${type}`;
+                statusIndicator.textContent = text;
+            }
+            
+            function showFinalAnalysis(data) {
+                const analysisDiv = document.getElementById('analysis-results');
+                
+                const statsHtml = `
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number">${data.overall_accuracy}%</div>
+                            <div class="stat-label">Overall Accuracy</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${data.completion_percentage}%</div>
+                            <div class="stat-label">Completion</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${data.error_counts.incorrect}</div>
+                            <div class="stat-label">Incorrect Words</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${data.error_counts.missing}</div>
+                            <div class="stat-label">Missing Words</div>
+                        </div>
+                    </div>
+                    
+                    <div class="suggestions">
+                        <h4>💡 Improvement Suggestions:</h4>
+                        <ul>
+                            ${data.suggestions.map(s => `<li>${s}</li>`).join('')}
+                        </ul>
+                    </div>
+                    
+                    <p><small>Session Duration: ${data.session_duration}</small></p>
+                `;
+                
+                analysisDiv.innerHTML = statsHtml;
+                document.getElementById('final-analysis').style.display = 'block';
+                updateStatus('ready', 'Analysis Complete');
+            }
+            
+            function playErrorSound() {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = 400;
+                    oscillator.type = 'sine';
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                } catch (e) {
+                    console.log('Audio not supported');
+                }
+            }
+            
+            function playSuccessSound() {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = 800;
+                    oscillator.type = 'sine';
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                } catch (e) {
+                    console.log('Audio not supported');
+                }
+            }
+            
+            function startNewRecitation() {
+                resetRecitation();
+            }
+            
+            function goToReport() {
+                window.location.href = '/report';
+            }
+            
+            function showError(message) {
+                const errorDiv = document.getElementById('real-time-errors');
+                const errorElement = document.createElement('div');
+                errorElement.className = 'real-time-error';
+                errorElement.innerHTML = `⚠️ ${message}`;
+                errorDiv.appendChild(errorElement);
+                
+                setTimeout(() => {
+                    if (errorElement.parentNode) {
+                        errorElement.parentNode.removeChild(errorElement);
+                    }
+                }, 5000);
+            }
+        }
+    </script>
 </body>
 </html>
